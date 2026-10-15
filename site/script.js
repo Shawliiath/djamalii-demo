@@ -63,10 +63,12 @@
   };
 
   // avant le drop (liste d'attente) ou jour du drop (boutique ouverte)
-  var mode = load(MODE, 'drop') === 'avant' ? 'avant' : 'drop';
+  // l'apercu s'ouvre toujours sur le jour du drop : « avant le drop » ne dure que le temps de la visite
+  var mode = 'drop';
+  try { localStorage.removeItem(MODE); } catch (e) { /* navigation privee */ }
   var shop = {
     mode: function () { return mode; },
-    setMode: function (m) { mode = m === 'avant' ? 'avant' : 'drop'; save(MODE, mode); emit('mode', mode); }
+    setMode: function (m) { mode = m === 'avant' ? 'avant' : 'drop'; emit('mode', mode); }
   };
 
   function euros(c) { return (c / 100).toFixed(2).replace('.', ',').replace(',00', '') + ' €'; }
