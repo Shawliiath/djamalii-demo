@@ -39,25 +39,33 @@ backup="$ROOT.avant-$(date +%Y%m%d-%H%M%S)"
 cp -a "$ROOT" "$backup"
 echo "copie de secours : $backup"
 
-# 3. la clé de déploiement (lecture seule) à ajouter dans github
-mkdir -p /root/.ssh && chmod 700 /root/.ssh
-[ -f "$KEY" ] || ssh-keygen -q -t ed25519 -N "" -C "djamalii-demo-deploy@$(hostname)" -f "$KEY"
-echo
-echo "=== ajoute cette clé dans github : dépôt djamalii-demo > Settings > Deploy keys > Add deploy key"
-echo "=== titre : vps, et laisse « Allow write access » décoché"
-echo
-cat "$KEY.pub"
-echo
-read -r -p "quand c'est ajouté, appuie sur Entrée " _ </dev/tty
-export GIT_SSH_COMMAND="ssh -i $KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
-if [ -d "$SRC/.git" ]; then git -C "$SRC" fetch -q origin main; else git clone -q "$REPO" "$SRC"; fi
+# 3. si le dépôt est public, rien à faire dans github ; sinon une clé de déploiement (lecture seule) à y ajouter
+export GIT_TERMINAL_PROMPT=0
+if git ls-remote -q https://github.com/Shawliiath/djamalii-demo.git HEAD >/dev/null 2>&1; then
+  REPO=https://github.com/Shawliiath/djamalii-demo.git
+  SSHCMD=""
+  echo "dépôt public : pas de clé à ajouter"
+else
+  mkdir -p /root/.ssh && chmod 700 /root/.ssh
+  [ -f "$KEY" ] || ssh-keygen -q -t ed25519 -N "" -C "djamalii-demo-deploy@$(hostname)" -f "$KEY"
+  echo
+  echo "=== ajoute cette clé dans github : dépôt djamalii-demo > Settings > Deploy keys > Add deploy key"
+  echo "=== titre : vps, et laisse « Allow write access » décoché"
+  echo
+  cat "$KEY.pub"
+  echo
+  read -r -p "quand c'est ajouté, appuie sur Entrée " _ </dev/tty
+  SSHCMD="ssh -i $KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+fi
+export GIT_SSH_COMMAND="${SSHCMD:-ssh}"
+if [ -d "$SRC/.git" ]; then git -C "$SRC" remote set-url origin "$REPO"; git -C "$SRC" fetch -q origin main; else git clone -q "$REPO" "$SRC"; fi
 
 # 4. le script qui récupère la dernière version et la copie dans le dossier du site
 cat > /usr/local/bin/djamalii-demo-sync <<EOF
 #!/usr/bin/env bash
 # récupère la dernière version de l'aperçu djamalii sur github et la met en ligne · by yanis
 set -euo pipefail
-export GIT_SSH_COMMAND="ssh -i $KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+export GIT_TERMINAL_PROMPT=0 GIT_SSH_COMMAND="${SSHCMD:-ssh}"
 cd "$SRC"
 git fetch -q origin main
 new=\$(git rev-parse origin/main)
