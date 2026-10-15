@@ -87,20 +87,26 @@
   var onScroll = function () { head.classList.toggle('scrolled', scrollY > 10); };
   addEventListener('scroll', onScroll, { passive: true }); onScroll();
   var menuBtn = $('.menu-btn'), nav = $('#menu');
-  menuBtn.addEventListener('click', function () {
-    var open = !nav.classList.contains('open');
+  function setMenu(open) {
     nav.classList.toggle('open', open);
     menuBtn.setAttribute('aria-expanded', String(open));
     menuBtn.setAttribute('aria-label', open ? 'Fermer le menu' : 'Ouvrir le menu');
-  });
-  nav.addEventListener('click', function (e) { if (e.target.closest('a')) { nav.classList.remove('open'); menuBtn.setAttribute('aria-expanded', 'false'); } });
+    menuBtn.querySelector('use').setAttribute('href', open ? '#i-close' : '#i-menu');
+  }
+  menuBtn.addEventListener('click', function () { setMenu(!nav.classList.contains('open')); });
+  function closeMenu(focus) { if (!nav.classList.contains('open')) return; setMenu(false); if (focus) menuBtn.focus(); }
+  addEventListener('scroll', function () { closeMenu(false); }, { passive: true });
+  nav.addEventListener('click', function (e) { if (e.target.closest('a')) closeMenu(false); });
+  // le menu du telephone se ferme aussi avec echap ou en touchant a cote
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMenu(true); });
+  document.addEventListener('click', function (e) { if (!e.target.closest('#menu, .menu-btn')) closeMenu(false); });
 
   /* apparitions */
   if ('IntersectionObserver' in window && !reduce) {
     var io = new IntersectionObserver(function (es) {
       es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
     }, { rootMargin: '0px 0px -6% 0px' });
-    document.querySelectorAll('.sec-head, .product, .maison-quote, .values li, .j, .liste-in > *, .qa > div').forEach(function (el) { el.classList.add('reveal'); io.observe(el); });
+    document.querySelectorAll('.sec-head, .grid, .maison-quote, .values li, .strip, .qa > div').forEach(function (el) { el.classList.add('reveal'); io.observe(el); });
   }
 
   /* apercu avant le drop / jour du drop */
@@ -174,11 +180,11 @@
       b.addEventListener('click', function () { colorKey = c.key; renderColor(); });
       sw.appendChild(b);
     });
-    var sz = $('#fiche-tailles'); sz.innerHTML = '';
+    var sz = $('#fiche-tailles'); sz.innerHTML = ''; $('#e-taille').hidden = true; sz.removeAttribute('aria-describedby');
     p.sizes.forEach(function (s) {
       var b = document.createElement('button'); b.type = 'button'; b.className = 'sz'; b.setAttribute('role', 'radio'); b.textContent = s;
       radio(b, false);
-      b.addEventListener('click', function () { size = s; sz.querySelectorAll('.sz').forEach(function (x) { radio(x, x === b); }); });
+      b.addEventListener('click', function () { size = s; sz.querySelectorAll('.sz').forEach(function (x) { radio(x, x === b); }); $('#e-taille').hidden = true; sz.removeAttribute('aria-describedby'); });
       sz.appendChild(b);
     });
     sz.firstChild.tabIndex = 0;
@@ -208,7 +214,8 @@
   $('#fiche-add').addEventListener('click', function () {
     if (!size) {
       var g = $('#fiche-tailles'); g.classList.remove('shake'); void g.offsetWidth; g.classList.add('shake');
-      say('Choisis ta taille'); g.querySelector('.sz').focus(); return;
+      $('#e-taille').hidden = false; g.setAttribute('aria-describedby', 'e-taille');
+      g.querySelector('.sz').focus(); return;
     }
     DJ.cart.add(cur, colorKey, size, qty);
     opener = null; sheet.close();
@@ -217,6 +224,7 @@
   $('#fiche-notify').addEventListener('click', function () {
     var sel = $('#f-modele'); if (sel) sel.value = cur;
     opener = null; sheet.close();
+    setTimeout(function () { $('#f-prenom').focus({ preventScroll: true }); }, 0);
   });
   if (/^#robe-/.test(location.hash)) openSheet(location.hash.slice(6));
 
