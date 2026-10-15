@@ -7,7 +7,7 @@ Aperçu du futur site de Djamalii (robes d'intérieur pudiques, made in Algeria)
 
 ## Mettre en ligne
 
-Une fois l'installation faite : tout ce qui arrive sur la branche `main` est en ligne en moins d'une minute.
+Une fois l'installation faite : tout ce qui arrive sur la branche `main` est en ligne en moins d'une minute. `./deploy.sh "ce qui a changé"` envoie et attend que ce soit vraiment en ligne, comme pour Taysir.
 https://demo-djamalii.habbozino.com/version.txt affiche le commit en ligne.
 
 ## Ce qu'il faut savoir
